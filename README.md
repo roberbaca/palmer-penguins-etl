@@ -15,6 +15,10 @@ This repository contains an ETL (Extract, Transform, Load) pipeline and explorat
 - dplyr  
 - ggplot2  
 
+## Project Report
+
+You can view the full analysis here: [Palmer Penguins ETL Report](PalmerPenguins.html)
+
 ## How to Run
 
 1. Clone the repo  
