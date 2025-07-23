@@ -1,0 +1,237 @@
+---
+title: "ETL Palmer Penguins"
+author: "Roberto Baca"
+date: "10/07/2025"
+output: 
+  prettydoc::html_pretty:
+          theme: architect
+---
+
+## ETL: Extraccion, Transformación y Carga
+
+### Que es un ETL ?
+
+* Extract: traer los datos.
+
+* Transform: limpiar, preparar y transformar.
+
+* Load: cargar o dejar listos para análisis o modelos.
+
+
+En este ejercicio trabajermos con el dataset "Palmer Penguins". El dataset penguins contiene datos sobre tres especies de pingüinos del archipielago Palmer (Antártida), con variables como:
+
+* especie (species)
+
+* isla (island)
+
+* largo y ancho del pico
+
+* largo y ancho de la aleta
+
+* masa corporal
+
+* sexo
+
+* año
+
+![Especies de pingüinos de las Islas Palmer](penguins.jpg)
+
+```{r setup, include=FALSE}
+# Evitamos mostrar los mensajes y advertencias en todos los chunks del documento
+knitr::opts_chunk$set(
+  echo = TRUE,       # Mostrar el código
+  warning = FALSE,   # Ocultar advertencias
+  message = FALSE    # Ocultar mensajes (por ejemplo, mensajes al cargar paquetes)
+)
+```
+
+
+```{r include=FALSE}
+# Pretty Doc permite crear documentos R Markdown con temas visualmente más atractivos y modernos
+#install.packages("prettydoc")
+```
+
+```{r}
+#install.packages("leaflet")
+library(leaflet)
+
+# Ubicacion de la estacion palmer
+# -64.77416897295598, -64.05381917264792
+
+# Mapa interactivo
+leaflet() %>%
+  addTiles() %>%
+  addMarkers(lat = -64.77416897295598, lng = -64.05381917264792, popup = "Estacion Palmer")
+```
+
+
+
+```{r}
+# librerias
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+
+```
+
+## 1. EXTRAER (extraer)
+
+Cargamos el dataset de estudio
+
+```{r}
+# instalamos el paquete
+#install.packages("palmerpenguins")
+
+# vemos el dataset (primeras 6 filas)
+head(penguins)
+
+```
+
+
+```{r}
+# podemos ver el dataset en forma horizontal
+glimpse(penguins)
+```
+
+
+```{r}
+# Estructura del dataset
+str(penguins)
+```
+Notamos que tenemos 344 observaciones y 8 variables. Las variables categoricas ya son factores (especie, isla y genero), por lo que no tenemos que factorizarlas.
+
+```{r}
+# Resumen estadistico
+summary(penguins)
+```
+```{r}
+# Podemos obtener un resumen estadistico usando la libreria skimr
+library(skimr)
+
+skim(penguins)
+```
+
+
+
+
+
+## 2. TRANSFORM (transformar)
+
+Este es el paso mas importante. Un buen ETL asegura que los datos sean consistentes y listos para analizar.
+
+Hay presencia de valores nulos. Debemos decidir que hacer con esos nulos, si omitirlos del análisis o reemplazarlos con algun otro valor, por ejemplo la mediana.
+Al tratarse de pocas observaciones, las eliminamos del dataframe.
+
+
+```{r}
+# Eliminamos los NA
+library(tidyr)
+
+penguins_df <- drop_na(penguins)
+
+str(penguins_df)
+```
+
+```{r}
+# Cambiamos los nombres de las columnas
+nuevos_nombres <- c("especie", "isla","longitud_pico", "ancho_pico", "longitud_aleta","peso_corporal", "genero", "año")
+
+colnames(penguins_df) <- nuevos_nombres
+
+# Mostramos los nombres de las columnas
+colnames(penguins_df)
+
+```
+
+```{r}
+# podemos agrupar los datos y obtener estadisticas
+penguins_df %>% group_by(especie) %>% summarise(promedio_long_pico = mean(longitud_pico), promedio_ancho_pico = mean(ancho_pico))
+```
+
+
+```{r}
+# Podemos realizar transformaciones a los datos.
+# Transformar el peso corporal de gramos a kilos
+
+penguins_df$peso_corporal <- penguins_df$peso_corporal / 1000
+head(penguins_df)
+
+```
+
+## 3. LOAD (cargar)
+
+Dejamos el dataset limpio para ser utilizado en analisis o modelos.
+
+```{r}
+# Guardar el dataset transformado en formato csv
+write.csv(penguins_df, "penguins_transformado.csv", row.names = FALSE)
+```
+
+
+## Visualizaciones
+
+```{r}
+# Grafico de cajas con ggplot2
+# Agregamos titulo, subtitulo y nota al pie
+graf_box <- ggplot(penguins_df, aes(x = especie, y = peso_corporal, fill = especie)) + 
+  geom_boxplot() + 
+  labs(title = "Boxplot peso corporal por especie", subtitle = "Pinguinos de la isla Palmer", caption = "Datos obtenidos entre 2007 y 2009") + 
+  theme_minimal()
+
+graf_box
+
+```
+
+```{r}
+# podemos combinar varias geom_functions en un mismo grafico
+linea_tendencia <- ggplot(penguins_df) +
+  geom_smooth(aes(x = longitud_aleta, y = peso_corporal)) +
+  geom_point(aes(x = longitud_aleta, y = peso_corporal)) +
+  labs(title = "Linea de tendencia. Longitud aleta vs Peso corporal") +
+  theme_bw()
+
+# y hacerlo interactivo con plotly
+ggplotly(linea_tendencia)
+```
+```{r}
+# se pueden separar los graficos con facet para visualizar subconjuntos de datos
+ggplotly(ggplot(penguins_df) +
+  geom_point(aes(x = longitud_pico, y = peso_corporal, color = especie)) +
+  facet_wrap(~especie) +
+  labs(title = "Distribucion de Longitud de pico vs peso corporal por especie") +
+  theme_bw())
+```
+
+```{r}
+# se puede utlizar facet_grid para armar una grilla con los graficos
+ggplot(penguins_df)+
+  geom_point(aes(x = longitud_aleta, y = peso_corporal, color = especie)) +
+  facet_grid(genero~especie) +
+  labs(title = "Distribucion de peso corporal vs longitud de aleta por especie y genero") +
+  theme_bw()
+```
+
+```{r}
+# Mapa de calor
+heatmap <- ggplotly(ggplot(penguins_df, aes(x = isla, y = especie)) +
+  labs(title = "Mapa de calor. Especie vs Isla") +
+  geom_bin2d())
+
+heatmap
+```
+
+```{r include=FALSE}
+# ggplot2 permite guardar el ultimo grafico cargado en la carpeta donde se encuentra este notebook:
+
+ggsave("pinguinos_facet_grid.png")
+
+# Tambien se puede guardar como pdf, debemos escribir estas tres lineas de codigo
+# pdf() abre un nuevo dispositivo gráfico vacío (una hoja nueva)
+# el grafico que queremos guardar como pdf
+# dev.off() cierra el archivo y guarda lo que se haya dibujado
+pdf(file = "pinguinos.pdf")
+heatmap
+dev.off()
+```
+
