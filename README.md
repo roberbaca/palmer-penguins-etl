@@ -17,7 +17,7 @@ This repository contains an ETL (Extract, Transform, Load) pipeline and explorat
 
 ## Project Report
 
-You can view the full analysis here: [Palmer Penguins ETL Report](PalmerPenguins.html)
+You can view the full analysis here: [Palmer Penguins ETL Report](https://roberbaca.github.io/palmer-penguins-etl)
 
 ## How to Run
 
